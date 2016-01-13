@@ -4,6 +4,11 @@ Testing the Linux kernel eBPF probes using the IOVisor BPF Compiler Collection (
 
 Some links explaining the eBPF probes in the kernel are:
 
+      (Formal documentation, including also an explanation of what the eBPF kernel
+       verifier explicitly ensures on the BPF code it validates.)
+
+      https://www.kernel.org/doc/Documentation/networking/filter.txt
+
       https://lwn.net/Articles/603983/   (and many others in LWN.net)
 
       (Brendan Gregg's website)
