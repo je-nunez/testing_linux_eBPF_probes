@@ -29,7 +29,9 @@ def main():
                          fn_name="my_eBPF_probe_do_return")
 
     # request time to sleep as an argument from the command-line, ie., by
-    # using the 'argparse' module
+    # using the 'argparse' module (the timing to wait is important because
+    # there can be no output reported by print_log2_hist() below if there is
+    # no activity of the kprobe we attached to in this period of time)
     sleep(60)      # wait for 60 seconds before sampling the results of probe
 
     bpf["delay_dist"].print_log2_hist("usecs")
