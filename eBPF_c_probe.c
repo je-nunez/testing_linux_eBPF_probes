@@ -15,7 +15,10 @@
  */
 
 BPF_HISTOGRAM(delay_dist);
-BPF_TABLE("array", int, u64, global_var_time_at_entry, 2);
+
+// This a global variable, expressed in the form of a BPF array from
+// indexes in [int] to values in 'u64', and this array has length = 1.
+BPF_TABLE("array", int, u64, global_var_time_at_entry, 1);
 
 
 u64 get_time_at_entry()
