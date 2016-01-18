@@ -1,6 +1,12 @@
-# Testing the Linux kernel eBPF probes using the IOVisor BPF Compiler Collection (BCC)
+# Testing the Linux kernel eBPF probes using the IO Visor BPF Compiler Collection (BCC)
 
-Testing the Linux kernel eBPF probes using the IOVisor BPF Compiler Collection (BCC)
+Testing the Linux kernel eBPF probes using the IO Visor BPF Compiler Collection (BCC)
+
+The Linux kernel eBPF is officially part of the kernel since 3.15, released on 8 June
+2014. The BCC is a very recent wrapper (the project itself started in [May 2015](https://github.com/iovisor/bcc/graphs/contributors))
+over eBPF, using the library `libbcc.so`. The source code of the BCC module is at
+
+      https://github.com/iovisor/bcc
 
 Some links explaining the eBPF probes in the kernel are:
 
@@ -21,10 +27,19 @@ Some links explaining the eBPF probes in the kernel are:
 
       https://suchakra.wordpress.com/2015/05/18/bpf-internals-i/
 
-The source code of the BCC module is at
+To see the kernel probes (`kprobes`) in use, do a:
 
-      https://github.com/iovisor/bcc
+      cat /sys/kernel/debug/kprobes/list
 
+More background information about IO Visor can be found here:
+
+      https://www.iovisor.org/resources/blog
+
+and some of its objectives (which rely technically on eBPF) are:
+
+      https://www.iovisor.org/news/blogs/2015/08/what-are-implications-io-visor-project-and-why-it-matters
+
+      https://www.iovisor.org/news/blogs/2015/08/programmable-io-across-virtual-and-physical-infrastructures
 
 # WIP
 
