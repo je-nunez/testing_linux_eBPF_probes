@@ -42,12 +42,16 @@ def main():
         bpf["delay_dist"].print_log2_hist("usecs")
         bpf["delay_dist"].clear()
 
+        # All the direct iterations on BPF tables return ctypes values (like
+        # c_int, c_ulong, etc), which we unwrap here as a presentation issue
+        # by the .value property
         for k, val in bpf["global_var_total_accum_jiff"].items():
-            print "total_accum_jiff[{}] = {}".format(k, val)
+            print "total_accum_jiff[{}] = {}".format(k.value, val.value)
         bpf["global_var_total_accum_jiff"].clear()
 
         for k, val in bpf["total_accum_jiff_per_order"].items():
-            print "total_accum_jiff_per_order[{}] = {}".format(k, val)
+            print "total_accum_jiff_per_order[{}] = {}".format(k.value,
+                                                               val.value)
         bpf["total_accum_jiff_per_order"].clear()
 
         sys.stdout.flush()
