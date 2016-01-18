@@ -31,6 +31,10 @@ To see the kernel probes (`kprobes`) in use, do a:
 
       cat /sys/kernel/debug/kprobes/list
 
+This documents explains kprobes:
+
+      https://www.kernel.org/doc/Documentation/kprobes.txt
+
 More background information about IO Visor can be found here:
 
       https://www.iovisor.org/resources/blog
