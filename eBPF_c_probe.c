@@ -1,7 +1,7 @@
 #include <linux/mmzone.h>
 
 /*
- * This is an extended BPF kernel module, with some probes, for the IOVisor
+ * This is an extended BPF kernel module, with some probes, for the IO Visor
  * BPF Compiler Collection (BCC) for an x86_64 architecture. (Tested on a
  * Linux kernel 4.3.3)
  *
@@ -16,36 +16,37 @@
 
 BPF_HISTOGRAM(delay_dist);
 
-// These are global variables, expressed in the form of a BPF array from
-// indexes in [int] to values in 'u64', and these arrays have length = 1.
+// These are scalar global variables, expressed in the form of a BPF array from
+// indexes in [int] to values in 'u64', so these arrays have length = 1.
 
-#define ENTRIES_GLOBAL_VAR  1
+#define ENTRIES_SCALAR_VAR  1
 
-BPF_TABLE("array", int, u64, global_var_time_at_entry, ENTRIES_GLOBAL_VAR);
+BPF_TABLE("array", int, u64, global_var_time_at_entry, ENTRIES_SCALAR_VAR);
 
-BPF_TABLE("array", int, u64, global_var_total_accum_jiff, ENTRIES_GLOBAL_VAR);
+BPF_TABLE("array", int, u64, global_var_total_accum_jiff, ENTRIES_SCALAR_VAR);
 
-// this is a hash having the accum delays of the compact_zone_order() by
-// "order", which acts as the key for the hash. (Very probably 128 is way
-// too a conservative allocation for this hash.)
+// this is a hash having the accum delays in jiffies of the compact_zone_order()
+// by the "order" parameter, which acts as the key for the hash. (Very probably
+// 128 is way too a conservative allocation for this hash.)
 
-#define MAX_DIFFERENT_ORDERS   128
+#define HASH_BUCKETS_FOR_ORDERS   128
 
 // (Note: we use the types here, "int", "unsigned long", "u64", mainly according
-//  as we copy the types from the corresponding parameters in the probed
+//  as we copy the types from the corresponding parameters in the probed kernel
 //  functions, like in "kernel/mm/compaction.c", and, if the value is not taken
-//  from the probed function, then the type is from the BPF auxiliary functions;
-//  the last recourse, if no type can be inferred, is to give the type
-//  ourselves. To be clearer, we track the main type assumption with a typedef)
+//  from the original kernel function, then the type is from the BPF auxiliary
+//  functions; as last recourse, if no type can be inferred, is to give the type
+//  ourselves.
+//  To be clearer, we track the main type assumption with a typedef)
 
 typedef int order_type;
 
 BPF_TABLE("hash", order_type, u64, total_accum_jiff_per_order,
-          MAX_DIFFERENT_ORDERS);
+          HASH_BUCKETS_FOR_ORDERS);
 
 // The saved "order" at entry in "compact_zone_order()"
 BPF_TABLE("array", int, order_type, global_var_saved_order_at_entry,
-          ENTRIES_GLOBAL_VAR);
+          ENTRIES_SCALAR_VAR);
 
 
 // Auxiliary functions to the BPF probes
@@ -53,7 +54,7 @@ BPF_TABLE("array", int, order_type, global_var_saved_order_at_entry,
 u64 get_time_at_entry(void)
 {
         u32 idx_zero = 0;
-        u64 *current_time_ptr = global_var_time_at_entry.lookup(&idx_zero);
+        u64 *ptr_time_at_entry = global_var_time_at_entry.lookup(&idx_zero);
 
         // the eBPF probe runs in kernel mode, so the kernel eBPF verifier is
         // very strict (for safety and stability), and will reject BPF
@@ -61,7 +62,7 @@ u64 get_time_at_entry(void)
         // null: you need to make explicit the veracity that a pointer is not
         // null, otherwise the kernel verifier will reject it.
 
-        return (current_time_ptr)? *current_time_ptr: 0;
+        return (ptr_time_at_entry)? *ptr_time_at_entry: 0;
 }
 
 void set_time_at_entry(u64 new_value)
@@ -96,7 +97,7 @@ order_type get_saved_order_at_entry(void)
 {
         u32 idx_zero = 0;
         order_type *saved_order_ptr =
-        global_var_saved_order_at_entry.lookup(&idx_zero);
+                global_var_saved_order_at_entry.lookup(&idx_zero);
 
         // same as comment above that the kernel verifier requires to check
         // explicitly for implicit assumptions
@@ -108,7 +109,7 @@ void set_saved_order_at_entry(order_type new_value)
 {
         u32 idx_zero = 0;
         order_type *saved_order_ptr =
-        global_var_saved_order_at_entry.lookup(&idx_zero);
+                global_var_saved_order_at_entry.lookup(&idx_zero);
 
         // same as comment above that the kernel verifier requires to check
         // explicitly for implicit assumptions
@@ -120,6 +121,8 @@ void set_saved_order_at_entry(order_type new_value)
 // BPF probes
 
 /*
+ * Probed function:
+ *
  * static unsigned long compact_zone_order(struct zone *zone, int order,
  *               gfp_t gfp_mask, enum migrate_mode mode, int *contended,
  *               int alloc_flags, int classzone_idx)
@@ -149,11 +152,11 @@ int prb_eBPF_compact_zone_order_entry(struct pt_regs *ctx, struct zone *zone,
         set_time_at_entry(time_at_entry);
 
         //     I'm confused on the following instruction to get one argument to
-        //     the probed function, I'm very sorry for this.
+        //     the probed kernel function, I'm very sorry for this.
         //     The following instruction seems to be needed (?) if the parameter
         //     passing to the intercepted callee (compact_zone_order()) is
-        //     through the CPU registers. I need to consult more (e.g.,
-        //     sections "3.2.3" and "A.2.1" of):
+        //     through the CPU registers (e.g., from the SI register). I need to
+        //     consult more (e.g., sections "3.2.3" and "A.2.1" of):
         //
         //           http://x86-64.org/documentation/abi.pdf
         //
@@ -184,12 +187,16 @@ int prb_eBPF_compact_zone_order_return(struct pt_regs *ctx)
                 u64 delta = bpf_ktime_get_ns() - time_at_entry;
                 delay_dist.increment(bpf_log2l(delta / 1000));
 
-                // We use auxiliary get/set functions because this probe is not
-                // called as intensively frequent as for the calls to these
-                // getter/setters be too overwhelming in load
+                // We use auxiliary get/set functions because this probe kernel
+                // function is not called as intensively frequent as for the
+                // calls to these getter/setters be too overwhelming in load
+
                 u64 * total_accum_jiff = get_total_accum_jiff();
                 if (total_accum_jiff)
                         (*total_accum_jiff) += delta;
+
+                // update the accum time (in jiffies) to compact the memory of
+                // this "order"
 
                 int saved_order_at_entry = get_saved_order_at_entry();
 
