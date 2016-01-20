@@ -23,17 +23,18 @@ BPF_HISTOGRAM(delay_dist);
 
 BPF_TABLE("array", int, u64, global_var_time_at_entry, ENTRIES_SCALAR_VAR);
 
-BPF_TABLE("array", int, u64, global_var_total_accum_jiff, ENTRIES_SCALAR_VAR);
+BPF_TABLE("array", int, u64, global_var_total_accum_nsec, ENTRIES_SCALAR_VAR);
 
-// this is a hash having the accum delays in jiffies of the compact_zone_order()
-// by the "order" parameter, which acts as the key for the hash. (Very probably
-// 128 is way too a conservative allocation for this hash.)
+// this is a hash having the accum delays in nanoseconds of the calls to
+// "compact_zone_order(...)", and this hash is keyed by the "order" argument
+// passed to this kernel function. (Very probably 128 different hash keys is
+// way too a conservative allocation for this hash.)
 
 #define HASH_BUCKETS_FOR_ORDERS   128
 
 // (Note: we use the types here, "int", "unsigned long", "u64", mainly according
 //  as we copy the types from the corresponding parameters in the probed kernel
-//  functions, like in "kernel/mm/compaction.c", and, if the value is not taken
+//  functions, like in "kernel/mm/compaction.c", and, if the type is not taken
 //  from the original kernel function, then the type is from the BPF auxiliary
 //  functions; as last recourse, if no type can be inferred, is to give the type
 //  ourselves.
@@ -41,7 +42,7 @@ BPF_TABLE("array", int, u64, global_var_total_accum_jiff, ENTRIES_SCALAR_VAR);
 
 typedef int order_type;
 
-BPF_TABLE("hash", order_type, u64, total_accum_jiff_per_order,
+BPF_TABLE("hash", order_type, u64, total_accum_nsec_per_order,
           HASH_BUCKETS_FOR_ORDERS);
 
 // The saved "order" at entry in "compact_zone_order()"
@@ -76,21 +77,21 @@ void set_time_at_entry(u64 new_value)
                 *ptr_time_at_entry = new_value;
 }
 
-u64 * get_total_accum_jiff(void)
+u64 * get_total_accum_nsec(void)
 {
         u32 idx_zero = 0;
-        u64 *total_accum_j_ptr = global_var_total_accum_jiff.lookup(&idx_zero);
+        u64 *total_accum_t_ptr = global_var_total_accum_nsec.lookup(&idx_zero);
 
-        return (total_accum_j_ptr)? total_accum_j_ptr: NULL;
+        return (total_accum_t_ptr)? total_accum_t_ptr: NULL;
 }
 
-u64 * get_total_accum_jiff_per_order(order_type order)
+u64 * get_total_accum_nsec_per_order(order_type order)
 {
         u64 zero = 0;
-        u64 *total_accum_j_ptr =
-                total_accum_jiff_per_order.lookup_or_init(&order, &zero);
+        u64 *total_accum_t_ptr =
+                total_accum_nsec_per_order.lookup_or_init(&order, &zero);
 
-        return (total_accum_j_ptr)? total_accum_j_ptr: NULL;
+        return (total_accum_t_ptr)? total_accum_t_ptr: NULL;
 }
 
 order_type get_saved_order_at_entry(void)
@@ -151,12 +152,12 @@ int prb_eBPF_compact_zone_order_entry(struct pt_regs *ctx, struct zone *zone,
         time_at_entry = bpf_ktime_get_ns();
         set_time_at_entry(time_at_entry);
 
-        //     I'm confused on the following instruction to get one argument to
+        //     I'm confused on the following instruction to get an argument into
         //     the probed kernel function, I'm very sorry for this.
         //     The following instruction seems to be needed (?) if the parameter
         //     passing to the intercepted callee (compact_zone_order()) is
-        //     through the CPU registers (e.g., from the SI register). I need to
-        //     consult more (e.g., sections "3.2.3" and "A.2.1" of):
+        //     through the CPU registers (e.g., through the SI register). I need
+        //     to consult more (e.g., sections "3.2.3" and "A.2.1" of):
         //
         //           http://x86-64.org/documentation/abi.pdf
         //
@@ -191,19 +192,19 @@ int prb_eBPF_compact_zone_order_return(struct pt_regs *ctx)
                 // function is not called as intensively frequent as for the
                 // calls to these getter/setters be too overwhelming in load
 
-                u64 * total_accum_jiff = get_total_accum_jiff();
-                if (total_accum_jiff)
-                        (*total_accum_jiff) += delta;
+                u64 * total_accum_nsec = get_total_accum_nsec();
+                if (total_accum_nsec)
+                        (*total_accum_nsec) += delta;
 
-                // update the accum time (in jiffies) to compact the memory of
-                // this "order"
+                // update the accum time (in nanoseconds) to compact the memory
+                // of this "order"
 
                 int saved_order_at_entry = get_saved_order_at_entry();
 
-                u64 * accum_jiff_order =
-                        get_total_accum_jiff_per_order(saved_order_at_entry);
-                if (accum_jiff_order)
-                        (*accum_jiff_order) += delta;
+                u64 * accum_nsec_order =
+                        get_total_accum_nsec_per_order(saved_order_at_entry);
+                if (accum_nsec_order)
+                        (*accum_nsec_order) += delta;
 
                 // clear the (saved) time in the global variables array
                 set_time_at_entry(0);
