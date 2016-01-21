@@ -6,6 +6,7 @@
 """
 
 import sys
+import argparse
 from time import sleep, strftime
 
 # Import the IO Visor BPF Compiler Collection (BCC)
@@ -14,6 +15,28 @@ from bcc import BPF
 
 def main():
     """Main program."""
+
+    if not sys.platform.startswith('linux'):
+        sys.stderr.write('This program probes only the Linux kernel\n')
+        sys.exit(1)
+
+    parser = argparse.ArgumentParser(
+        description="Show Linux compact_zone_order() compaction of fragments",
+        formatter_class=argparse.RawDescriptionHelpFormatter)
+
+    parser.add_argument(
+        "-n", "--number-iters", default=1, type=int,
+        help="Sample the kernel probes this number of iterations")
+    parser.add_argument(
+        "-i", "--interval", default=1, type=int,
+        help="Sample the kernel probes every this interval, in seconds")
+    args = parser.parse_args()
+
+    run_bpf_probe(args.number_iters, args.interval)
+
+
+def run_bpf_probe(num_iterations, sleep_secs):
+    """Run the extended BPF probe on Linux's compact_zone_order() function."""
 
     # debug_level = 0x3    # 0x3: dump LLVM IR and BPF byte code to stderr
     debug_level = 0x0      # debug 0x0 = no debug
@@ -38,8 +61,8 @@ def main():
     # e.g., by using the 'argparse' module (the timing to wait is important
     # because there can be no output reported below if there is no activity of
     # the kprobe we attached to in this period of time)
-    for sample in xrange(1, 360 + 1):
-        sleep(2 * 60)
+    for sample in xrange(1, num_iterations + 1):
+        sleep(sleep_secs)
 
         print "sample: {} at {}".format(sample, strftime("%D %T"))
         bpf["delay_dist"].print_log2_hist("usecs")
