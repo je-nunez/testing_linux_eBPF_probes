@@ -49,6 +49,23 @@ BPF_TABLE("hash", order_type, u64, total_accum_nsec_per_order,
 BPF_TABLE("array", int, order_type, global_var_saved_order_at_entry,
           ENTRIES_SCALAR_VAR);
 
+// The counter of how many different kmalloc() related operations happened
+// specifically only while the memory compaction was running
+
+BPF_TABLE("array", int, u64, global_var_cnt_kmalloc_order_trace,
+          ENTRIES_SCALAR_VAR);
+
+BPF_TABLE("array", int, u64, global_var_cnt___kmalloc,
+          ENTRIES_SCALAR_VAR);
+
+BPF_TABLE("array", int, u64, global_var_cnt___do_kmalloc_node,
+          ENTRIES_SCALAR_VAR);
+
+BPF_TABLE("array", int, u64, global_var_cnt_kmem_cache_alloc_trace,
+          ENTRIES_SCALAR_VAR);
+
+BPF_TABLE("array", int, u64, global_var_cnt_malloc,
+          ENTRIES_SCALAR_VAR);
 
 // Auxiliary functions to the BPF probes
 
@@ -116,6 +133,46 @@ void set_saved_order_at_entry(order_type new_value)
         // explicitly for implicit assumptions
         if (saved_order_ptr)
                 *saved_order_ptr = new_value;
+}
+
+u64 * get_cnt_kmalloc_order_trace(void)
+{
+        u32 idx_zero = 0;
+        u64 *cnt_ptr = global_var_cnt_kmalloc_order_trace.lookup(&idx_zero);
+
+        return (cnt_ptr)? cnt_ptr: NULL;
+}
+
+u64 * get_cnt___kmalloc(void)
+{
+        u32 idx_zero = 0;
+        u64 *cnt_ptr = global_var_cnt___kmalloc.lookup(&idx_zero);
+
+        return (cnt_ptr)? cnt_ptr: NULL;
+}
+
+u64 * get_cnt___do_kmalloc_node(void)
+{
+        u32 idx_zero = 0;
+        u64 *cnt_ptr = global_var_cnt___do_kmalloc_node.lookup(&idx_zero);
+
+        return (cnt_ptr)? cnt_ptr: NULL;
+}
+
+u64 * get_cnt_kmem_cache_alloc_trace(void)
+{
+        u32 idx_zero = 0;
+        u64 *cnt_ptr = global_var_cnt_kmem_cache_alloc_trace.lookup(&idx_zero);
+
+        return (cnt_ptr)? cnt_ptr: NULL;
+}
+
+u64 * get_cnt_malloc(void)
+{
+        u32 idx_zero = 0;
+        u64 *cnt_ptr = global_var_cnt_malloc.lookup(&idx_zero);
+
+        return (cnt_ptr)? cnt_ptr: NULL;
 }
 
 
@@ -212,3 +269,96 @@ int prb_eBPF_compact_zone_order_return(struct pt_regs *ctx)
 
         return 0;
 }
+
+
+/*
+ * Another probed kernel functions: kmalloc() family
+ *
+ * (Some of these functions are inlines so they can't be probed.)
+ *
+ * These BPF probes do not analyze the kmalloc()-types per-se, but the only the
+ * ones that happen __while__ a compact_zone_order() is also happening. To see
+ * if a compact_zone_order() is running in another thread, try to see if
+ * get_time_at_entry() is set when a compact_zone_order() started
+ */
+
+int prb_eBPF_kmalloc_order_trace_return(struct pt_regs *ctx)
+{
+
+        u64 time_at_entry = get_time_at_entry();
+
+        if (time_at_entry != 0) {
+                // it is set. Get a point to the counter and increment it.
+
+                u64 * counter = get_cnt_kmalloc_order_trace();
+
+                if (counter) (*counter) ++;
+        }
+
+        return 0;
+}
+
+int prb_eBPF___kmalloc_return(struct pt_regs *ctx)
+{
+
+        u64 time_at_entry = get_time_at_entry();
+
+        if (time_at_entry != 0) {
+                // it is set. Get a point to the counter and increment it.
+
+                u64 * counter = get_cnt___kmalloc();
+
+                if (counter) (*counter) ++;
+        }
+
+        return 0;
+}
+
+int prb_eBPF___do_kmalloc_node_return(struct pt_regs *ctx)
+{
+
+        u64 time_at_entry = get_time_at_entry();
+
+        if (time_at_entry != 0) {
+                // it is set. Get a point to the counter and increment it.
+
+                u64 * counter = get_cnt___do_kmalloc_node();
+
+                if (counter) (*counter) ++;
+        }
+
+        return 0;
+}
+
+int prb_eBPF_kmem_cache_alloc_trace_return(struct pt_regs *ctx)
+{
+
+        u64 time_at_entry = get_time_at_entry();
+
+        if (time_at_entry != 0) {
+                // it is set. Get a point to the counter and increment it.
+
+                u64 * counter = get_cnt_kmem_cache_alloc_trace();
+
+                if (counter) (*counter) ++;
+        }
+
+        return 0;
+}
+
+int prb_eBPF_malloc_return(struct pt_regs *ctx)
+{
+
+        u64 time_at_entry = get_time_at_entry();
+
+        if (time_at_entry != 0) {
+                // it is set. Get a point to the counter and increment it.
+
+                u64 * counter = get_cnt_malloc();
+
+                if (counter) (*counter) ++;
+        }
+
+        return 0;
+}
+

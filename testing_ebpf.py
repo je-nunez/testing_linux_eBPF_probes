@@ -57,6 +57,39 @@ def run_bpf_probe(num_iterations, sleep_secs):
     bpf.attach_kretprobe(event=synchr_non_concurrent_kpoint,
                          fn_name="prb_eBPF_compact_zone_order_return")
 
+    # these are other collateral events we want to know if they happen at the
+    # same time as the main event above, and relatively, how frequently they
+    # happen when the main probed events (above) are happening.
+
+    collateral_events = [
+        {'func': 'kmalloc_order_trace',
+         'probe': 'prb_eBPF_kmalloc_order_trace_return',
+         'count': 'global_var_cnt_kmalloc_order_trace'},
+
+        {'func': '__kmalloc',
+         'probe': 'prb_eBPF___kmalloc_return',
+         'count': 'global_var_cnt___kmalloc'},
+
+        {'func': '__do_kmalloc_node',
+         'probe': 'prb_eBPF___do_kmalloc_node_return',
+         'count': 'global_var_cnt___do_kmalloc_node'},
+
+        {'func': 'kmem_cache_alloc_trace',
+         'probe': 'prb_eBPF_kmem_cache_alloc_trace_return',
+         'count': 'global_var_cnt_kmem_cache_alloc_trace'},
+
+        {'func': 'malloc',
+         'probe': 'prb_eBPF_malloc_return',
+         'count': 'global_var_cnt_malloc'}
+    ]
+
+    for collateral_event in collateral_events:
+        bpf.attach_kretprobe(event=collateral_event['func'],
+                             fn_name=collateral_event['probe'])
+
+        assert len(bpf[collateral_event['count']]) == 1, \
+            "Var '{}' must be a scalar too.".format(collateral_event['count'])
+
     # request time to sleep and iterations as arguments from the command-line,
     # e.g., by using the 'argparse' module (the timing to wait is important
     # because there can be no output reported below if there is no activity of
@@ -82,6 +115,12 @@ def run_bpf_probe(num_iterations, sleep_secs):
             print ("total_accum_usec[order = {}] = "
                    "{:.0f}").format(k.value, val.value / 1000)
         bpf["total_accum_nsec_per_order"].clear()
+
+        for collateral_event in collateral_events:
+            concur_kmallocs = bpf[collateral_event['count']].values()[0]
+            print "{} while compaction = {}".format(collateral_event['func'],
+                                                    concur_kmallocs.value)
+            bpf[collateral_event['count']].clear()
 
         sys.stdout.flush()
 
