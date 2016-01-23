@@ -74,13 +74,37 @@ def run_bpf_probe(num_iterations, sleep_secs):
          'probe': 'prb_eBPF___do_kmalloc_node_return',
          'count': 'global_var_cnt___do_kmalloc_node'},
 
+        {'func': 'kmem_cache_alloc',
+         'probe': 'prb_eBPF_kmem_cache_alloc_return',
+         'count': 'global_var_cnt_kmem_cache_alloc'},
+
         {'func': 'kmem_cache_alloc_trace',
          'probe': 'prb_eBPF_kmem_cache_alloc_trace_return',
          'count': 'global_var_cnt_kmem_cache_alloc_trace'},
 
         {'func': 'malloc',
          'probe': 'prb_eBPF_malloc_return',
-         'count': 'global_var_cnt_malloc'}
+         'count': 'global_var_cnt_malloc'},
+
+        {'func': 'kfree',
+         'probe': 'prb_eBPF_kfree_return',
+         'count': 'global_var_cnt_kfree'},
+
+        {'func': 'kmem_cache_reap',
+         'probe': 'prb_eBPF_kmem_cache_reap_return',
+         'count': 'global_var_cnt_kmem_cache_reap'},
+
+        {'func': 'kmem_cache_free',
+         'probe': 'prb_eBPF_kmem_cache_free_return',
+         'count': 'global_var_cnt_kmem_cache_free'},
+
+        {'func': 'kmem_cache_destroy',
+         'probe': 'prb_eBPF_kmem_cache_destroy_return',
+         'count': 'global_var_cnt_kmem_cache_destroy'},
+
+        {'func': 'kmem_cache_shrink',
+         'probe': 'prb_eBPF_kmem_cache_shrink_return',
+         'count': 'global_var_cnt_kmem_cache_shrink'}
     ]
 
     for collateral_event in collateral_events:
@@ -97,7 +121,7 @@ def run_bpf_probe(num_iterations, sleep_secs):
     for sample in xrange(1, num_iterations + 1):
         sleep(sleep_secs)
 
-        print "sample: {} at {}".format(sample, strftime("%D %T"))
+        print "---- new sample: {} at {}".format(sample, strftime("%D %T"))
         bpf["delay_dist"].print_log2_hist("usecs")
         bpf["delay_dist"].clear()
 

@@ -61,10 +61,28 @@ BPF_TABLE("array", int, u64, global_var_cnt___kmalloc,
 BPF_TABLE("array", int, u64, global_var_cnt___do_kmalloc_node,
           ENTRIES_SCALAR_VAR);
 
+BPF_TABLE("array", int, u64, global_var_cnt_kmem_cache_alloc,
+          ENTRIES_SCALAR_VAR);
+
 BPF_TABLE("array", int, u64, global_var_cnt_kmem_cache_alloc_trace,
           ENTRIES_SCALAR_VAR);
 
 BPF_TABLE("array", int, u64, global_var_cnt_malloc,
+          ENTRIES_SCALAR_VAR);
+
+BPF_TABLE("array", int, u64, global_var_cnt_kfree,
+          ENTRIES_SCALAR_VAR);
+
+BPF_TABLE("array", int, u64, global_var_cnt_kmem_cache_reap,
+          ENTRIES_SCALAR_VAR);
+
+BPF_TABLE("array", int, u64, global_var_cnt_kmem_cache_free,
+          ENTRIES_SCALAR_VAR);
+
+BPF_TABLE("array", int, u64, global_var_cnt_kmem_cache_destroy,
+          ENTRIES_SCALAR_VAR);
+
+BPF_TABLE("array", int, u64, global_var_cnt_kmem_cache_shrink,
           ENTRIES_SCALAR_VAR);
 
 // Auxiliary functions to the BPF probes
@@ -159,6 +177,14 @@ u64 * get_cnt___do_kmalloc_node(void)
         return (cnt_ptr)? cnt_ptr: NULL;
 }
 
+u64 * get_cnt_kmem_cache_alloc(void)
+{
+        u32 idx_zero = 0;
+        u64 *cnt_ptr = global_var_cnt_kmem_cache_alloc.lookup(&idx_zero);
+
+        return (cnt_ptr)? cnt_ptr: NULL;
+}
+
 u64 * get_cnt_kmem_cache_alloc_trace(void)
 {
         u32 idx_zero = 0;
@@ -171,6 +197,46 @@ u64 * get_cnt_malloc(void)
 {
         u32 idx_zero = 0;
         u64 *cnt_ptr = global_var_cnt_malloc.lookup(&idx_zero);
+
+        return (cnt_ptr)? cnt_ptr: NULL;
+}
+
+u64 * get_cnt_kfree(void)
+{
+        u32 idx_zero = 0;
+        u64 *cnt_ptr = global_var_cnt_kfree.lookup(&idx_zero);
+
+        return (cnt_ptr)? cnt_ptr: NULL;
+}
+
+u64 * get_cnt_kmem_cache_reap(void)
+{
+        u32 idx_zero = 0;
+        u64 *cnt_ptr = global_var_cnt_kmem_cache_reap.lookup(&idx_zero);
+
+        return (cnt_ptr)? cnt_ptr: NULL;
+}
+
+u64 * get_cnt_kmem_cache_free(void)
+{
+        u32 idx_zero = 0;
+        u64 *cnt_ptr = global_var_cnt_kmem_cache_free.lookup(&idx_zero);
+
+        return (cnt_ptr)? cnt_ptr: NULL;
+}
+
+u64 * get_cnt_kmem_cache_destroy(void)
+{
+        u32 idx_zero = 0;
+        u64 *cnt_ptr = global_var_cnt_kmem_cache_destroy.lookup(&idx_zero);
+
+        return (cnt_ptr)? cnt_ptr: NULL;
+}
+
+u64 * get_cnt_kmem_cache_shrink(void)
+{
+        u32 idx_zero = 0;
+        u64 *cnt_ptr = global_var_cnt_kmem_cache_shrink.lookup(&idx_zero);
 
         return (cnt_ptr)? cnt_ptr: NULL;
 }
@@ -330,6 +396,22 @@ int prb_eBPF___do_kmalloc_node_return(struct pt_regs *ctx)
         return 0;
 }
 
+int prb_eBPF_kmem_cache_alloc_return(struct pt_regs *ctx)
+{
+
+        u64 time_at_entry = get_time_at_entry();
+
+        if (time_at_entry != 0) {
+                // it is set. Get a point to the counter and increment it.
+
+                u64 * counter = get_cnt_kmem_cache_alloc();
+
+                if (counter) (*counter) ++;
+        }
+
+        return 0;
+}
+
 int prb_eBPF_kmem_cache_alloc_trace_return(struct pt_regs *ctx)
 {
 
@@ -355,6 +437,86 @@ int prb_eBPF_malloc_return(struct pt_regs *ctx)
                 // it is set. Get a point to the counter and increment it.
 
                 u64 * counter = get_cnt_malloc();
+
+                if (counter) (*counter) ++;
+        }
+
+        return 0;
+}
+
+int prb_eBPF_kfree_return(struct pt_regs *ctx)
+{
+
+        u64 time_at_entry = get_time_at_entry();
+
+        if (time_at_entry != 0) {
+                // it is set. Get a point to the counter and increment it.
+
+                u64 * counter = get_cnt_kfree();
+
+                if (counter) (*counter) ++;
+        }
+
+        return 0;
+}
+
+int prb_eBPF_kmem_cache_reap_return(struct pt_regs *ctx)
+{
+
+        u64 time_at_entry = get_time_at_entry();
+
+        if (time_at_entry != 0) {
+                // it is set. Get a point to the counter and increment it.
+
+                u64 * counter = get_cnt_kmem_cache_reap();
+
+                if (counter) (*counter) ++;
+        }
+
+        return 0;
+}
+
+int prb_eBPF_kmem_cache_free_return(struct pt_regs *ctx)
+{
+
+        u64 time_at_entry = get_time_at_entry();
+
+        if (time_at_entry != 0) {
+                // it is set. Get a point to the counter and increment it.
+
+                u64 * counter = get_cnt_kmem_cache_free();
+
+                if (counter) (*counter) ++;
+        }
+
+        return 0;
+}
+
+int prb_eBPF_kmem_cache_destroy_return(struct pt_regs *ctx)
+{
+
+        u64 time_at_entry = get_time_at_entry();
+
+        if (time_at_entry != 0) {
+                // it is set. Get a point to the counter and increment it.
+
+                u64 * counter = get_cnt_kmem_cache_destroy();
+
+                if (counter) (*counter) ++;
+        }
+
+        return 0;
+}
+
+int prb_eBPF_kmem_cache_shrink_return(struct pt_regs *ctx)
+{
+
+        u64 time_at_entry = get_time_at_entry();
+
+        if (time_at_entry != 0) {
+                // it is set. Get a point to the counter and increment it.
+
+                u64 * counter = get_cnt_kmem_cache_shrink();
 
                 if (counter) (*counter) ++;
         }
