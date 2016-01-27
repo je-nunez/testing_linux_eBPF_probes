@@ -60,3 +60,13 @@ E.g., at least for Red Hat / Fedora, besides a Linux kernel newer than 4.1, you 
 
 This script has been tested with a 4.3.3 kernel.
 
+You may need to increase the max value for `ulimit -l`, like in
+
+     ulimit -l 10240
+
+if you receive an error like:
+
+     eBPF_c_probe.c:85:1: error: could not open bpf map: Operation not permitted
+
+although newer versions of the IO Visor BCC may automatically set this, preventing this issue. (See [BCC issue 279](https://github.com/iovisor/bcc/pull/279) for more details.)
+
