@@ -58,7 +58,7 @@ E.g., at least for Red Hat / Fedora, besides a Linux kernel newer than 4.1, you 
 
      yum install libbcc libbcc-examples python-bcc
 
-This script has been tested with a 4.3.3 kernel.
+This script has been tested with a 4.3.3 and a 4.4 kernels.
 
 You may need to increase the max value for `ulimit -l`, like in
 
