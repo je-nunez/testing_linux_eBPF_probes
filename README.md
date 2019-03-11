@@ -5,8 +5,51 @@ Collection (BCC), for counting certain collaterial events (kernel
 function calls) only when another kernel function (`compact_zone_order`)
 is running.
 
-The Linux kernel eBPF is officially part of the kernel since 3.15, released on 8 June
-2014. The BCC is a very recent wrapper (the project itself started in [May 2015](https://github.com/iovisor/bcc/graphs/contributors))
+# WIP
+
+This project is a *work in progress*. The implementation is *incomplete* and
+subject to change. The documentation can be inaccurate.
+
+# To run:
+
+This script counts the occurrences of certain collaterial events
+(kernel function calls), only when another kernel function,
+`compact_zone_order`, is running the wrapper:
+
+     # cd <...>/directory-of-this-project/
+     # sh example.sh
+       total_accum_usec = 0
+       kmalloc_order_trace while compaction = 0
+       __kmalloc while compaction = 0
+       __do_kmalloc_node while compaction = 0
+       kmem_cache_alloc while compaction = 0
+       kmem_cache_alloc_trace while compaction = 0
+       malloc while compaction = 0
+       kfree while compaction = 0
+       kmem_cache_reap while compaction = 0
+       kmem_cache_free while compaction = 0
+       kmem_cache_destroy while compaction = 0
+       kmem_cache_shrink while compaction = 0
+
+# Required libraries
+
+[Follow these instructions to install the required libraries](https://github.com/iovisor/bcc/blob/master/INSTALL.md)
+
+This script has been tested with a 4.3.3, a 4.4, and a 5.0.1 kernels.
+
+You may need to increase the max value for `ulimit -l`, like in
+
+     ulimit -l 10240
+
+if you receive an error like:
+
+     eBPF_c_probe.c:85:1: error: could not open bpf map: Operation not permitted
+
+although newer versions of the IO Visor BCC may automatically set this, preventing this issue. (See [BCC issue 279](https://github.com/iovisor/bcc/pull/279) for more details.)
+
+# Extra links
+
+The BCC is a recent wrapper (the project itself started in [May 2015](https://github.com/iovisor/bcc/graphs/contributors))
 over eBPF, using the library `libbcc.so`. The source code of the BCC module is at
 
       https://github.com/iovisor/bcc
@@ -47,50 +90,4 @@ and some of its objectives (which rely technically on eBPF) are:
       https://www.iovisor.org/news/blogs/2015/08/what-are-implications-io-visor-project-and-why-it-matters
 
       https://www.iovisor.org/news/blogs/2015/08/programmable-io-across-virtual-and-physical-infrastructures
-
-# WIP
-
-This project is a *work in progress*. The implementation is *incomplete* and
-subject to change. The documentation can be inaccurate.
-
-# To run:
-
-This script counts the occurrences of certain collaterial events
-(kernel function calls), only when another kernel function,
-`compact_zone_order`, is running:
-
-     # cd <...>/directory-of-this-project/
-     # sh example.sh
-       total_accum_usec = 0
-       kmalloc_order_trace while compaction = 0
-       __kmalloc while compaction = 0
-       __do_kmalloc_node while compaction = 0
-       kmem_cache_alloc while compaction = 0
-       kmem_cache_alloc_trace while compaction = 0
-       malloc while compaction = 0
-       kfree while compaction = 0
-       kmem_cache_reap while compaction = 0
-       kmem_cache_free while compaction = 0
-       kmem_cache_destroy while compaction = 0
-       kmem_cache_shrink while compaction = 0
-
-# Required libraries
-
-[Follow these instructions to install the required libraries](https://github.com/iovisor/bcc/blob/master/INSTALL.md)
-
-E.g., at least for Red Hat / Fedora, besides a Linux kernel newer than 4.1, you need to install:
-
-     yum install libbcc libbcc-examples python-bcc
-
-This script has been tested with a 4.3.3 and a 4.4 kernels.
-
-You may need to increase the max value for `ulimit -l`, like in
-
-     ulimit -l 10240
-
-if you receive an error like:
-
-     eBPF_c_probe.c:85:1: error: could not open bpf map: Operation not permitted
-
-although newer versions of the IO Visor BCC may automatically set this, preventing this issue. (See [BCC issue 279](https://github.com/iovisor/bcc/pull/279) for more details.)
 
