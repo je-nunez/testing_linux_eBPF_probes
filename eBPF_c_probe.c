@@ -1,3 +1,12 @@
+
+// Avoid newer issue with CLang:
+// https://github.com/iovisor/bcc/issues/2119
+
+#ifdef asm_volatile_goto
+#undef asm_volatile_goto
+#define asm_volatile_goto(x...)
+#endif
+
 #include <linux/mmzone.h>
 
 /*
@@ -87,6 +96,7 @@ BPF_TABLE("array", int, u64, global_var_cnt_kmem_cache_shrink,
 
 // Auxiliary functions to the BPF probes
 
+static
 u64 get_time_at_entry(void)
 {
         u32 idx_zero = 0;
@@ -101,6 +111,7 @@ u64 get_time_at_entry(void)
         return (ptr_time_at_entry)? *ptr_time_at_entry: 0;
 }
 
+static
 void set_time_at_entry(u64 new_value)
 {
         u32 idx_zero = 0;
@@ -112,6 +123,7 @@ void set_time_at_entry(u64 new_value)
                 *ptr_time_at_entry = new_value;
 }
 
+static
 u64 * get_total_accum_nsec(void)
 {
         u32 idx_zero = 0;
@@ -120,6 +132,7 @@ u64 * get_total_accum_nsec(void)
         return (total_accum_t_ptr)? total_accum_t_ptr: NULL;
 }
 
+static
 u64 * get_total_accum_nsec_per_order(order_type order)
 {
         u64 zero = 0;
@@ -129,6 +142,7 @@ u64 * get_total_accum_nsec_per_order(order_type order)
         return (total_accum_t_ptr)? total_accum_t_ptr: NULL;
 }
 
+static
 order_type get_saved_order_at_entry(void)
 {
         u32 idx_zero = 0;
@@ -141,6 +155,7 @@ order_type get_saved_order_at_entry(void)
         return (saved_order_ptr)? *saved_order_ptr: 0;
 }
 
+static
 void set_saved_order_at_entry(order_type new_value)
 {
         u32 idx_zero = 0;
@@ -153,6 +168,7 @@ void set_saved_order_at_entry(order_type new_value)
                 *saved_order_ptr = new_value;
 }
 
+static
 u64 * get_cnt_kmalloc_order_trace(void)
 {
         u32 idx_zero = 0;
@@ -161,6 +177,7 @@ u64 * get_cnt_kmalloc_order_trace(void)
         return (cnt_ptr)? cnt_ptr: NULL;
 }
 
+static
 u64 * get_cnt___kmalloc(void)
 {
         u32 idx_zero = 0;
@@ -169,6 +186,7 @@ u64 * get_cnt___kmalloc(void)
         return (cnt_ptr)? cnt_ptr: NULL;
 }
 
+static
 u64 * get_cnt___do_kmalloc_node(void)
 {
         u32 idx_zero = 0;
@@ -177,6 +195,7 @@ u64 * get_cnt___do_kmalloc_node(void)
         return (cnt_ptr)? cnt_ptr: NULL;
 }
 
+static
 u64 * get_cnt_kmem_cache_alloc(void)
 {
         u32 idx_zero = 0;
@@ -185,6 +204,7 @@ u64 * get_cnt_kmem_cache_alloc(void)
         return (cnt_ptr)? cnt_ptr: NULL;
 }
 
+static
 u64 * get_cnt_kmem_cache_alloc_trace(void)
 {
         u32 idx_zero = 0;
@@ -193,6 +213,7 @@ u64 * get_cnt_kmem_cache_alloc_trace(void)
         return (cnt_ptr)? cnt_ptr: NULL;
 }
 
+static
 u64 * get_cnt_malloc(void)
 {
         u32 idx_zero = 0;
@@ -201,6 +222,7 @@ u64 * get_cnt_malloc(void)
         return (cnt_ptr)? cnt_ptr: NULL;
 }
 
+static
 u64 * get_cnt_kfree(void)
 {
         u32 idx_zero = 0;
@@ -209,6 +231,7 @@ u64 * get_cnt_kfree(void)
         return (cnt_ptr)? cnt_ptr: NULL;
 }
 
+static
 u64 * get_cnt_kmem_cache_reap(void)
 {
         u32 idx_zero = 0;
@@ -217,6 +240,7 @@ u64 * get_cnt_kmem_cache_reap(void)
         return (cnt_ptr)? cnt_ptr: NULL;
 }
 
+static
 u64 * get_cnt_kmem_cache_free(void)
 {
         u32 idx_zero = 0;
@@ -225,6 +249,7 @@ u64 * get_cnt_kmem_cache_free(void)
         return (cnt_ptr)? cnt_ptr: NULL;
 }
 
+static
 u64 * get_cnt_kmem_cache_destroy(void)
 {
         u32 idx_zero = 0;
@@ -233,6 +258,7 @@ u64 * get_cnt_kmem_cache_destroy(void)
         return (cnt_ptr)? cnt_ptr: NULL;
 }
 
+static
 u64 * get_cnt_kmem_cache_shrink(void)
 {
         u32 idx_zero = 0;

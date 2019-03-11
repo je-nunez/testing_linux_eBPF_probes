@@ -1,6 +1,9 @@
 # Testing the Linux kernel eBPF probes using the IO Visor BPF Compiler Collection (BCC)
 
-Testing the Linux kernel eBPF probes using the IO Visor BPF Compiler Collection (BCC)
+Testing the Linux kernel eBPF probes using the IO Visor BPF Compiler
+Collection (BCC), for counting certain collaterial events (kernel
+function calls) only when another kernel function (`compact_zone_order`)
+is running.
 
 The Linux kernel eBPF is officially part of the kernel since 3.15, released on 8 June
 2014. The BCC is a very recent wrapper (the project itself started in [May 2015](https://github.com/iovisor/bcc/graphs/contributors))
@@ -49,6 +52,27 @@ and some of its objectives (which rely technically on eBPF) are:
 
 This project is a *work in progress*. The implementation is *incomplete* and
 subject to change. The documentation can be inaccurate.
+
+# To run:
+
+This script counts the occurrences of certain collaterial events
+(kernel function calls), only when another kernel function,
+`compact_zone_order`, is running:
+
+     # cd <...>/directory-of-this-project/
+     # sh example.sh
+       total_accum_usec = 0
+       kmalloc_order_trace while compaction = 0
+       __kmalloc while compaction = 0
+       __do_kmalloc_node while compaction = 0
+       kmem_cache_alloc while compaction = 0
+       kmem_cache_alloc_trace while compaction = 0
+       malloc while compaction = 0
+       kfree while compaction = 0
+       kmem_cache_reap while compaction = 0
+       kmem_cache_free while compaction = 0
+       kmem_cache_destroy while compaction = 0
+       kmem_cache_shrink while compaction = 0
 
 # Required libraries
 
