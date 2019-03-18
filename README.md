@@ -153,3 +153,5 @@ and some of its objectives (which rely technically on eBPF) are:
 
       https://www.iovisor.org/news/blogs/2015/08/programmable-io-across-virtual-and-physical-infrastructures
 
+The Cilium project -at [https://github.com/cilium/cilium](https://github.com/cilium/cilium)- relies on eBPF to provide network load-balancing and security to processes and containers.
+
