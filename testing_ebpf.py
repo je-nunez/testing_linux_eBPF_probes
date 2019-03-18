@@ -70,7 +70,7 @@ def main():
         sys.exit(1)
 
     parser = argparse.ArgumentParser(
-        description="Show Linux compact_zone_order() compaction of fragments",
+        description="Show Linux compact_zone() compaction of fragments",
         formatter_class=argparse.RawDescriptionHelpFormatter)
 
     parser.add_argument(
@@ -87,7 +87,7 @@ def main():
 
 def run_bpf_probe():
     """
-       Set the extended BPF probe on Linux's compact_zone_order() function.
+       Set the extended BPF probe on Linux's compact_zone() function.
        Returns the BPF object created.
     """
     # debug_level = 0x3    # 0x3: dump LLVM IR and BPF byte code to stderr
@@ -95,7 +95,7 @@ def run_bpf_probe():
 
     bpf = BPF(src_file="eBPF_c_probe.c", debug=debug_level)
 
-    # ebpf_code = bpf.dump_func(func_name="prb_eBPF_compact_zone_order_entry")
+    # ebpf_code = bpf.dump_func(func_name="prb_eBPF_compact_zone_entry")
 
     assert len(bpf["global_var_total_accum_nsec"]) == 1, \
         "Expected a global variable in BPF that be a scalar, ie., of length 1"
@@ -105,15 +105,15 @@ def run_bpf_probe():
     # our BPF probe will only work for a kernel point which is not executed
     # concurrently, if not it will fail. Of course, you can use other
     # data structures in the BPF probe that can make it work concurrently.
-    synchr_non_concurrent_kpoint = "compact_zone_order"
+    synchr_non_concurrent_kpoint = "compact_zone"
     if synchr_non_concurrent_kpoint not in all_attacheable_ksyms:
         sys.exit("ERROR: '{}' is not an attacheable symbol"
                  .format(synchr_non_concurrent_kpoint))
 
     bpf.attach_kprobe(event=synchr_non_concurrent_kpoint,
-                      fn_name="prb_eBPF_compact_zone_order_entry")
+                      fn_name="prb_eBPF_compact_zone_entry")
     bpf.attach_kretprobe(event=synchr_non_concurrent_kpoint,
-                         fn_name="prb_eBPF_compact_zone_order_return")
+                         fn_name="prb_eBPF_compact_zone_return")
 
     # these are collateral events we want to know if they happen at the same
     # time as the main event above, and relatively, how frequently they happen

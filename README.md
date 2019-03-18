@@ -2,7 +2,7 @@
 
 Testing the Linux kernel eBPF probes using the IO Visor BPF Compiler
 Collection (BCC), for counting certain collaterial events (kernel
-function calls) only when another kernel function (`compact_zone_order`)
+function calls) only when another kernel function (`compact_zone`)
 is running.
 
 # WIP
@@ -12,22 +12,84 @@ subject to change. The documentation can be inaccurate.
 
 # To run:
 
-This script counts the occurrences of certain collaterial events
-(kernel function calls), only when another kernel function,
-`compact_zone_order`, is running the wrapper:
+The script in this project uses eBPF to count the occurrences of certain
+collaterial events (kernel function calls), only when another kernel
+function, `compact_zone`, is running. I.e., it is to count the occurrences
+of those collateral events only when certain kernel function is running.
+
+E.g., to generate some load, we can use Mel Gorman's MMTests tests, at
+[https://github.com/gormanm/mmtests](https://github.com/gormanm/mmtests),
+(e.g., `run-mmtests.sh --run-monitor --config configs/config-global-dhp__workload_thpfioscale-madvhugepage ...`),
+and then, measuring with this script:
 
      # cd <...>/directory-of-this-project/
+     # # call the wrapper example.sh script in this project:
      # sh example.sh
-       total_accum_usec = 0
+       ...
+       ---- new sample: 34 at <time>
+            usecs               : count     distribution
+                0 -> 1          : 0        |                                        |
+                2 -> 3          : 0        |                                        |
+                4 -> 7          : 0        |                                        |
+                8 -> 15         : 0        |                                        |
+               16 -> 31         : 0        |                                        |
+               32 -> 63         : 0        |                                        |
+               64 -> 127        : 0        |                                        |
+              128 -> 255        : 0        |                                        |
+              256 -> 511        : 0        |                                        |
+              512 -> 1023       : 0        |                                        |
+             1024 -> 2047       : 4        |****************************************|
+             2048 -> 4095       : 0        |                                        |
+             4096 -> 8191       : 0        |                                        |
+             8192 -> 16383      : 0        |                                        |
+            16384 -> 32767      : 1        |**********                              |
+            32768 -> 65535      : 1        |**********                              |
+            65536 -> 131071     : 0        |                                        |
+           131072 -> 262143     : 0        |                                        |
+           262144 -> 524287     : 1        |**********                              |
+       total_accum_usec = 328598
+       total_accum_usec[order = 2175450592] = 328598
        kmalloc_order_trace while compaction = 0
-       __kmalloc while compaction = 0
+       __kmalloc while compaction = 13144
        __do_kmalloc_node while compaction = 0
-       kmem_cache_alloc while compaction = 0
-       kmem_cache_alloc_trace while compaction = 0
+       kmem_cache_alloc while compaction = 20514
+       kmem_cache_alloc_trace while compaction = 10049
        malloc while compaction = 0
-       kfree while compaction = 0
+       kfree while compaction = 48336
        kmem_cache_reap while compaction = 0
-       kmem_cache_free while compaction = 0
+       kmem_cache_free while compaction = 23239
+       kmem_cache_destroy while compaction = 0
+       kmem_cache_shrink while compaction = 0
+       ---- new sample: 35 at <time + 60 seconds>
+            usecs               : count     distribution
+                0 -> 1          : 0        |                                        |
+                2 -> 3          : 0        |                                        |
+                4 -> 7          : 0        |                                        |
+                8 -> 15         : 0        |                                        |
+               16 -> 31         : 0        |                                        |
+               32 -> 63         : 0        |                                        |
+               64 -> 127        : 0        |                                        |
+              128 -> 255        : 0        |                                        |
+              256 -> 511        : 0        |                                        |
+              512 -> 1023       : 0        |                                        |
+             1024 -> 2047       : 14       |****************************************|
+             2048 -> 4095       : 4        |***********                             |
+             4096 -> 8191       : 1        |**                                      |
+             8192 -> 16383      : 0        |                                        |
+            16384 -> 32767      : 1        |**                                      |
+            32768 -> 65535      : 0        |                                        |
+            65536 -> 131071     : 1        |**                                      |
+       total_accum_usec = 127966
+       total_accum_usec[order = 2175450592] = 127966
+       kmalloc_order_trace while compaction = 0
+       __kmalloc while compaction = 463
+       __do_kmalloc_node while compaction = 0
+       kmem_cache_alloc while compaction = 8756
+       kmem_cache_alloc_trace while compaction = 14490
+       malloc while compaction = 0
+       kfree while compaction = 22900
+       kmem_cache_reap while compaction = 0
+       kmem_cache_free while compaction = 1680
        kmem_cache_destroy while compaction = 0
        kmem_cache_shrink while compaction = 0
 

@@ -35,7 +35,7 @@ BPF_TABLE("array", int, u64, global_var_time_at_entry, ENTRIES_SCALAR_VAR);
 BPF_TABLE("array", int, u64, global_var_total_accum_nsec, ENTRIES_SCALAR_VAR);
 
 // this is a hash having the accum delays in nanoseconds of the calls to
-// "compact_zone_order(...)", and this hash is keyed by the "order" argument
+// "compact_zone(...)", and this hash is keyed by the "order" argument
 // passed to this kernel function. (Very probably 128 different hash keys is
 // way too a conservative allocation for this hash.)
 
@@ -49,12 +49,12 @@ BPF_TABLE("array", int, u64, global_var_total_accum_nsec, ENTRIES_SCALAR_VAR);
 //  ourselves.
 //  To be clearer, we track the main type assumption with a typedef)
 
-typedef int order_type;
+typedef unsigned int order_type;
 
 BPF_TABLE("hash", order_type, u64, total_accum_nsec_per_order,
           HASH_BUCKETS_FOR_ORDERS);
 
-// The saved "order" at entry in "compact_zone_order()"
+// The saved "order" at entry in "compact_zone()"
 BPF_TABLE("array", int, order_type, global_var_saved_order_at_entry,
           ENTRIES_SCALAR_VAR);
 
@@ -273,7 +273,7 @@ u64 * get_cnt_kmem_cache_shrink(void)
 /*
  * Probed function:
  *
- * static unsigned long compact_zone_order(struct zone *zone, int order,
+ * static unsigned long compact_zone(struct zone *zone, int order,
  *               gfp_t gfp_mask, enum migrate_mode mode, int *contended,
  *               int alloc_flags, int classzone_idx)
  *
@@ -285,7 +285,7 @@ u64 * get_cnt_kmem_cache_shrink(void)
  * )
  */
 
-int prb_eBPF_compact_zone_order_entry(struct pt_regs *ctx, struct zone *zone,
+int prb_eBPF_compact_zone_entry(struct pt_regs *ctx, struct zone *zone,
                                       int order)
 {
         u64 time_at_entry = get_time_at_entry();
@@ -304,9 +304,9 @@ int prb_eBPF_compact_zone_order_entry(struct pt_regs *ctx, struct zone *zone,
         //     I'm confused on the following instruction to get an argument into
         //     the probed kernel function, I'm very sorry for this.
         //     The following instruction seems to be needed (?) if the parameter
-        //     passing to the intercepted callee (compact_zone_order()) is
-        //     through the CPU registers (e.g., through the SI register). I need
-        //     to consult more (e.g., sections "3.2.3" and "A.2.1" of):
+        //     passing to the intercepted callee (compact_zone()) is through the
+        //     CPU registers (e.g., through the SI register). I need to consult
+        //     more (e.g., sections "3.2.3" and "A.2.1" of):
         //
         //           http://x86-64.org/documentation/abi.pdf
         //
@@ -322,7 +322,7 @@ int prb_eBPF_compact_zone_order_entry(struct pt_regs *ctx, struct zone *zone,
         return 0;
 }
 
-int prb_eBPF_compact_zone_order_return(struct pt_regs *ctx)
+int prb_eBPF_compact_zone_return(struct pt_regs *ctx)
 {
         u64 time_at_entry = get_time_at_entry();
 
@@ -348,7 +348,7 @@ int prb_eBPF_compact_zone_order_return(struct pt_regs *ctx)
                 // update the accum time (in nanoseconds) to compact the memory
                 // of this "order"
 
-                int saved_order_at_entry = get_saved_order_at_entry();
+                unsigned int saved_order_at_entry = get_saved_order_at_entry();
 
                 u64 * accum_nsec_order =
                         get_total_accum_nsec_per_order(saved_order_at_entry);
@@ -369,9 +369,9 @@ int prb_eBPF_compact_zone_order_return(struct pt_regs *ctx)
  * (Some of these functions are inlines so they can't be probed.)
  *
  * These BPF probes do not analyze the kmalloc()-types per-se, but the only the
- * ones that happen __while__ a compact_zone_order() is also happening. To see
- * if a compact_zone_order() is running in another thread, try to see if
- * get_time_at_entry() is set when a compact_zone_order() started
+ * ones that happen __while__ a compact_zone() is also happening. To see if a
+ * compact_zone() is running in another thread, try to see if
+ * get_time_at_entry() is set when a compact_zone() started
  */
 
 int prb_eBPF_kmalloc_order_trace_return(struct pt_regs *ctx)
